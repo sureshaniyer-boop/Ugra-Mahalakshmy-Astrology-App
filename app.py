@@ -5,7 +5,7 @@ from typing import Dict, List, Tuple
 import os
 
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel
 
 try:
@@ -305,6 +305,41 @@ def index() -> str:
     return HTML
 
 
+@app.get("/manifest.webmanifest")
+def manifest() -> JSONResponse:
+    return JSONResponse(
+        {
+            "name": "Ugra Mahalakshmy Astrology App",
+            "short_name": "Ugra Astrology",
+            "description": "Sidereal 9-graha astrology calculator with nakshatra, pada, aspects, and bhava summary.",
+            "start_url": "/",
+            "scope": "/",
+            "display": "standalone",
+            "background_color": "#eef4ef",
+            "theme_color": "#0a4d38",
+            "orientation": "portrait",
+            "icons": [
+                {
+                    "src": "/icon.svg",
+                    "sizes": "any",
+                    "type": "image/svg+xml",
+                    "purpose": "any maskable",
+                }
+            ],
+        }
+    )
+
+
+@app.get("/service-worker.js")
+def service_worker() -> Response:
+    return Response(SERVICE_WORKER, media_type="application/javascript")
+
+
+@app.get("/icon.svg")
+def icon() -> Response:
+    return Response(APP_ICON, media_type="image/svg+xml")
+
+
 @app.get("/api/places")
 def places() -> List[Dict[str, object]]:
     return PLACES
@@ -333,6 +368,11 @@ HTML = r"""
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a4d38">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <title>Ugra Mahalakshmy Astrology App</title>
   <style>
     :root {
@@ -757,7 +797,59 @@ HTML = r"""
     });
 
     loadPlaces().then(calculate).catch((error) => setStatus(error.message, true));
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+      });
+    }
   </script>
 </body>
 </html>
+"""
+
+SERVICE_WORKER = r"""
+const CACHE_NAME = "ugra-astrology-v1";
+const APP_SHELL = ["/", "/manifest.webmanifest", "/icon.svg"];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
+    )
+  );
+  self.clients.claim();
+});
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET") return;
+
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      if (cached) return cached;
+      return fetch(request).then((response) => {
+        if (response.ok && new URL(request.url).origin === self.location.origin) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        }
+        return response;
+      });
+    })
+  );
+});
+"""
+
+APP_ICON = r"""
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="104" fill="#0a4d38"/>
+  <circle cx="256" cy="256" r="174" fill="#fff3cf"/>
+  <circle cx="256" cy="256" r="118" fill="none" stroke="#ad5f1d" stroke-width="18"/>
+  <path d="M256 92l28 96 96-28-68 74 68 74-96-28-28 96-28-96-96 28 68-74-68-74 96 28z" fill="#0f6b4e"/>
+  <circle cx="256" cy="256" r="34" fill="#ad5f1d"/>
+</svg>
 """

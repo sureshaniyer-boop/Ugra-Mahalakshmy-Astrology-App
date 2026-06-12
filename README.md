@@ -51,14 +51,25 @@ uvicorn app:app --host 127.0.0.1 --port 8000
 
 ## Android Direction
 
-The current app is a local Python web app. Android cannot directly run this exact Windows/Python setup as a normal APK.
+The app is PWA-friendly. Android Chrome can install it to the home screen after the app is deployed online.
 
 Recommended path:
 
 1. Publish this project to GitHub.
 2. Deploy the Python calculator backend to a cloud service.
-3. Convert the browser interface into a mobile-friendly PWA or Capacitor Android app.
-4. The Android app sends birth details to the backend and displays the same graha/aspect results.
+3. Open the deployed app link on Android Chrome.
+4. Tap **Add to Home screen** or **Install app**.
+
+See `ANDROID_SETUP.md` for step-by-step instructions.
+
+## App Routes
+
+- `/` - main app
+- `/health` - backend health check
+- `/api/places` - built-in place list
+- `/api/calculate` - chart calculation API
+- `/manifest.webmanifest` - Android/PWA install metadata
+- `/service-worker.js` - basic app shell cache
 
 Offline Android is possible later, but it requires a native Android build using an Android-compatible Swiss Ephemeris library or a calculation engine port.
 
