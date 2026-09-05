@@ -1,12 +1,15 @@
-# Shri Kashi Astrology Research AI — Phase 1
+# Shri Kashi Astrology Research AI — Phase 2
 
-A local research assistant that converts astrology lecture transcripts into structured, searchable professional notes.
+A local astrology research assistant that converts lectures, transcripts, and authorised media uploads into structured, searchable professional notes.
 
-## Phase 1 features
+## Phase 2 features
 
-- Paste a YouTube/lecture transcript
+- Paste a transcript directly
+- Upload TXT, SRT or VTT transcript files
+- Upload authorised MP3, MP4, MPEG, MPGA, M4A, WAV or WEBM media and transcribe it with OpenAI speech-to-text
+- Recognise YouTube URLs and preserve the source link/video ID
 - Tamil / English / mixed-language support
-- Extract core teachings
+- Extract core astrology teachings
 - Build an astrology rule database
 - Extract Pariharam/remedy instructions
 - Extract case studies
@@ -17,7 +20,18 @@ A local research assistant that converts astrology lecture transcripts into stru
 - Search previous notes
 - Export an analysis as Markdown
 
-## Run from this GitHub repository on Windows
+## Important YouTube limitation
+
+The official YouTube Data API does not provide unrestricted caption downloading for arbitrary public videos. Caption listing/downloading requires appropriate authorisation and permissions.
+
+For that reason, this app does not bypass YouTube controls or silently download arbitrary videos. Use one of these routes:
+
+1. Paste a transcript you are permitted to access.
+2. Upload a TXT/SRT/VTT transcript.
+3. Upload audio/video that you are authorised to process.
+4. Later, OAuth support can be added for caption access to YouTube content you own/manage.
+
+## Run from GitHub on Windows
 
 ```powershell
 git clone https://github.com/sureshaniyer-boop/Ugra-Mahalakshmy-Astrology-App.git
@@ -38,9 +52,15 @@ Then run:
 streamlit run app.py
 ```
 
-Open the local address Streamlit shows, normally `http://localhost:8501`.
+Open the local address Streamlit shows, normally:
 
-## Recommended transcript format
+```text
+http://localhost:8501
+```
+
+## Best workflow for astrology videos
+
+For the strongest research output, use a timestamped transcript whenever available:
 
 ```text
 [00:01:20] Today we are discussing Mudakku Dosham...
@@ -48,18 +68,23 @@ Open the local address Streamlit shows, normally `http://localhost:8501`.
 [00:17:10] For this condition the pariharam is...
 ```
 
-## Data
+The AI will preserve those timestamps in the research note whenever the transcript contains them.
 
-Your local notes are stored in `astrology_library.db`. It is ignored by GitHub so your private research library is not uploaded accidentally.
+## Data privacy
 
-## Phase 2 roadmap
+Your local notes are stored in:
 
-1. Video/audio transcription through permitted input routes
-2. Semantic search across all notes
-3. Ask My Astrology Library
-4. Cross-video contradiction comparison
-5. Master Pariharam database
-6. Master Nakshatra/Pada rule database
-7. PDF/book ingestion
-8. Source-level citations and timestamp deep links
-9. Optional private cloud deployment
+`astrology_library.db`
+
+The database and `.env` are ignored by GitHub, so your private research library and API key are not uploaded accidentally.
+
+## Next roadmap
+
+1. Ask My Astrology Library semantic research assistant
+2. Cross-video contradiction comparison
+3. Master Pariharam database
+4. Master Nakshatra/Pada rule database
+5. PDF/book ingestion
+6. Source-level timestamp deep links
+7. Optional OAuth for captions on YouTube content you own/manage
+8. Optional private cloud deployment
