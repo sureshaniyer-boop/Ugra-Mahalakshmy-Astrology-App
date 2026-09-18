@@ -1,6 +1,6 @@
 # Nakshatra Finder
 
-A local astrology calculator app for sidereal 9-graha positions, nakshatra, pada, graha aspects, and bhava summary.
+A local astrology calculator app for sidereal Navagraha positions plus Maanthi (Mandi), nakshatra, pada, graha aspects, and bhava summary.
 
 The app is based on Swiss Ephemeris through `pyswisseph` and currently uses Lahiri ayanamsa by default.
 
@@ -8,6 +8,7 @@ The app is based on Swiss Ephemeris through `pyswisseph` and currently uses Lahi
 
 - Lagna longitude, rasi, nakshatra, and pada
 - Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn, Rahu, and Ketu positions
+- Maanthi (Mandi) position calculated from the actual local day/night duration using the traditional Uttara Kalamrita proportional method
 - Graha aspect landing points by rasi, nakshatra, pada, and house from lagna
 - A 12-bhava aspect count summary
 
