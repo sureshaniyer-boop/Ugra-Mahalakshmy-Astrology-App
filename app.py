@@ -213,6 +213,102 @@ def calc_lagna(jd_ut: float, lat: float, lon: float) -> float:
     return normalize(float(ascmc[0]))
 
 
+def _sun_event_after(jd_start: float, lat: float, lon: float, event_flag: int) -> float:
+    """Return the Julian day UT of the next sunrise/sunset after jd_start."""
+    geopos = (float(lon), float(lat), 0.0)
+    result, tret = swe.rise_trans(
+        float(jd_start),
+        swe.SUN,
+        event_flag,
+        geopos,
+        0.0,
+        15.0,
+        swe.FLG_SWIEPH,
+    )
+    if result < 0:
+        raise RuntimeError("Unable to calculate sunrise/sunset for Maanthi.")
+    return float(tret[0])
+
+
+def _previous_and_next_sun_event(
+    jd_ut: float, lat: float, lon: float, event_flag: int
+) -> Tuple[float, float]:
+    """Find the solar event immediately before and after the birth moment."""
+    search_start = float(jd_ut) - 1.5
+    previous = _sun_event_after(search_start, lat, lon, event_flag)
+
+    while previous > jd_ut:
+        search_start -= 1.0
+        previous = _sun_event_after(search_start, lat, lon, event_flag)
+
+    next_event = _sun_event_after(previous + 0.01, lat, lon, event_flag)
+    while next_event <= jd_ut:
+        next_event = _sun_event_after(next_event + 0.01, lat, lon, event_flag)
+
+    return previous, next_event
+
+
+def _jd_ut_to_local_datetime(jd_ut: float, tz: float) -> datetime:
+    year, month, day, hour_decimal = swe.revjul(float(jd_ut), swe.GREG_CAL)
+    return datetime(int(year), int(month), int(day)) + timedelta(
+        hours=float(hour_decimal) + float(tz)
+    )
+
+
+def calc_maanthi(
+    jd_ut: float, lat: float, lon: float, tz: float
+) -> Tuple[float, Dict[str, object]]:
+    """
+    Calculate Maanthi (Mandi) using the traditional proportional day/night method.
+
+    Day values from Sunday through Saturday:
+    26, 22, 18, 14, 10, 6, 2 ghatis out of a nominal 30-ghati day.
+
+    Night values from Sunday through Saturday:
+    10, 6, 2, 26, 22, 18, 14 ghatis out of a nominal 30-ghati night.
+
+    The selected value is scaled to the actual sunrise-to-sunset or
+    sunset-to-next-sunrise duration. The sidereal ascendant at that
+    calculated instant is taken as Maanthi's longitude.
+    """
+    prev_rise, next_rise = _previous_and_next_sun_event(
+        jd_ut, lat, lon, swe.CALC_RISE
+    )
+    prev_set, next_set = _previous_and_next_sun_event(
+        jd_ut, lat, lon, swe.CALC_SET
+    )
+
+    if prev_rise > prev_set:
+        period = "Day"
+        span_start = prev_rise
+        span_end = next_set
+        ghati_values = [26, 22, 18, 14, 10, 6, 2]
+    else:
+        period = "Night"
+        span_start = prev_set
+        span_end = next_rise
+        ghati_values = [10, 6, 2, 26, 22, 18, 14]
+
+    start_local = _jd_ut_to_local_datetime(span_start, tz)
+    # Python weekday: Monday=0 ... Sunday=6. Convert to Sunday=0 ... Saturday=6.
+    weekday_index = (start_local.weekday() + 1) % 7
+    ghati_value = ghati_values[weekday_index]
+
+    span = span_end - span_start
+    maanthi_jd = span_start + span * (float(ghati_value) / 30.0)
+    maanthi_lon = calc_lagna(maanthi_jd, lat, lon)
+    maanthi_local = _jd_ut_to_local_datetime(maanthi_jd, tz)
+
+    metadata = {
+        "period": period,
+        "weekday": start_local.strftime("%A"),
+        "ghati_value": ghati_value,
+        "calculation_time_local": maanthi_local.strftime("%Y-%m-%d %H:%M:%S"),
+        "method": "Uttara Kalamrita proportional day/night Mandi method",
+    }
+    return maanthi_lon, metadata
+
+
 def build_chart(data: ChartRequest) -> Dict[str, object]:
     configure_swisseph(data.ayanamsa)
     jd_ut = julian_day_ut(data.date, data.time, data.tz)
@@ -250,6 +346,16 @@ def build_chart(data: ChartRequest) -> Dict[str, object]:
     ketu["speed"] = next(p["speed"] for p in planets if p["name"] == "Rahu")
     ketu["source"] = "Rahu + 180 degrees"
     planets.append(ketu)
+
+    maanthi_lon, maanthi_meta = calc_maanthi(
+        jd_ut, data.lat, data.lon, data.tz
+    )
+    maanthi = position_parts(maanthi_lon)
+    maanthi["name"] = "Maanthi"
+    maanthi["speed"] = 0
+    maanthi["source"] = "Calculated Mandi (Uttara Kalamrita day/night method)"
+    maanthi["calculation"] = maanthi_meta
+    planets.append(maanthi)
 
     aspects: List[Dict[str, object]] = []
     for planet in planets:
@@ -311,7 +417,7 @@ def manifest() -> JSONResponse:
         {
             "name": "Ugra Mahalakshmy Astrology App",
             "short_name": "Ugra Astrology",
-            "description": "Sidereal 9-graha astrology calculator with nakshatra, pada, aspects, and bhava summary.",
+            "description": "Sidereal Navagraha + Maanthi astrology calculator with nakshatra, pada, aspects, and bhava summary.",
             "start_url": "/",
             "scope": "/",
             "display": "standalone",
