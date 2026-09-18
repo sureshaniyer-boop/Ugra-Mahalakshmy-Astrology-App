@@ -234,16 +234,13 @@ def _previous_and_next_sun_event(
     jd_ut: float, lat: float, lon: float, event_flag: int
 ) -> Tuple[float, float]:
     """Find the solar event immediately before and after the birth moment."""
-    search_start = float(jd_ut) - 1.5
-    previous = _sun_event_after(search_start, lat, lon, event_flag)
+    candidate = _sun_event_after(float(jd_ut) - 2.0, lat, lon, event_flag)
+    previous = candidate
+    next_event = candidate
 
-    while previous > jd_ut:
-        search_start -= 1.0
-        previous = _sun_event_after(search_start, lat, lon, event_flag)
-
-    next_event = _sun_event_after(previous + 0.01, lat, lon, event_flag)
     while next_event <= jd_ut:
-        next_event = _sun_event_after(next_event + 0.01, lat, lon, event_flag)
+        previous = next_event
+        next_event = _sun_event_after(previous + 0.01, lat, lon, event_flag)
 
     return previous, next_event
 
